@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src data:; base-uri 'none'; form-action 'none'">
+<title>Trip Date Picker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='6' width='26' height='23' rx='5' fill='%230f766e'/%3E%3Crect x='3' y='6' width='26' height='7' rx='3' fill='%23134e4a'/%3E%3Ccircle cx='21' cy='21' r='4' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f6f6f3;--card:#fff;--ink:#1c1c1e;--muted:#6b6b72;--line:#e4e4df;
+  --accent:#0f766e;--accent-ink:#fff;--accent-soft:#d5f3ee;--cand:#eef5f3;
+  --final:#d97706;--final-soft:#fef3c7;--warn-soft:#fff1e6;--danger:#b91c1c;
+  --radius:14px;--shadow:0 1px 2px rgb(0 0 0 / .04),0 4px 16px rgb(0 0 0 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111113;--card:#1b1b1e;--ink:#ececee;--muted:#9a9aa2;--line:#2c2c31;
+  --accent:#2dd4bf;--accent-ink:#04201d;--accent-soft:#123f3a;--cand:#18292a;
+  --final:#fbbf24;--final-soft:#3a2c0c;--warn-soft:#3a210f;--danger:#f87171;
+  --shadow:none;color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111113;--card:#1b1b1e;--ink:#ececee;--muted:#9a9aa2;--line:#2c2c31;
+  --accent:#2dd4bf;--accent-ink:#04201d;--accent-soft:#123f3a;--cand:#18292a;
+  --final:#fbbf24;--final-soft:#3a2c0c;--warn-soft:#3a210f;--danger:#f87171;
+  --shadow:none;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{font-weight:700;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:8px}
+.brand i{width:18px;height:18px;border-radius:5px;background:var(--accent);display:inline-block}
+main{max-width:980px;margin:0 auto;padding:16px;display:grid;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);min-width:0}
+h1{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:14px;margin:16px 0 8px}
+p{margin:0 0 10px}
+.muted{color:var(--muted)}.small{font-size:13px}
+.err{color:var(--danger);font-size:14px;min-height:1px;margin:8px 0 0}
+.row{display:flex;gap:8px;align-items:center}.wrap{flex-wrap:wrap}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.55;cursor:default}
+.link{appearance:none;border:0;background:none;color:var(--accent);font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;width:100%}
+input:focus,select:focus,.btn:focus-visible,.c:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.form{display:grid;gap:12px}
+.form label{display:grid;gap:4px;font-weight:600;font-size:14px}
+.form label small{font-weight:400;color:var(--muted)}
+.form label.check{display:flex;align-items:center;gap:8px;font-weight:400}
+.form label.check input{width:auto}
+.row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media (max-width:560px){.row2{grid-template-columns:1fr 1fr}.row2 label:last-child{grid-column:1/-1}}
+.pill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.pill.ok{color:var(--accent);border-color:var(--accent)}
+.pill.saving{color:var(--final);border-color:var(--final)}
+.pill.err{color:var(--danger);border-color:var(--danger)}
+.banner{border-radius:var(--radius);padding:12px 16px;background:var(--accent-soft);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner.final{background:var(--final-soft)}
+.banner.warn{background:var(--warn-soft)}
+.cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.month h3{margin:0 0 6px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{font-size:11px;color:var(--muted);text-align:center;font-weight:600}
+.c{position:relative;aspect-ratio:1;border-radius:9px;display:flex;align-items:center;justify-content:center;font:inherit;font-size:13px;border:1px solid transparent;background:none;color:var(--muted);padding:0}
+.c.out{opacity:.25}
+.c.off{opacity:.55}
+button.c{cursor:pointer}
+button.c.off:hover{border-color:var(--line);opacity:1}
+.c.cand{--h:0;background:color-mix(in srgb,var(--accent) calc(var(--h) * 70%),var(--cand));color:var(--ink);font-weight:600;border-color:var(--line)}
+.c.cand.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.c.mine{border:2px solid var(--ink)}
+.c.mine::after{content:"✓";position:absolute;left:4px;top:1px;font-size:10px}
+.c.final{box-shadow:0 0 0 3px var(--final)}
+.c.focus{outline:2px dashed var(--ink);outline-offset:1px}
+.c .ct{position:absolute;right:3px;bottom:2px;font-size:10px;line-height:1;background:var(--card);color:var(--ink);border-radius:99px;padding:2px 4px;font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend b{display:inline-block;width:12px;height:12px;border-radius:4px;background:var(--cand);border:1px solid var(--line)}
+.legend b.hot{background:var(--accent)}.legend b.me{border:2px solid var(--ink)}.legend b.fin{box-shadow:0 0 0 2px var(--final)}
+.focusbox{margin-top:14px;padding:12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{font-size:12px;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--ink)}
+.chip.no{background:transparent;border:1px solid var(--line);color:var(--muted)}
+ol.best{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+ol.best li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+ol.best li.top{border-color:var(--accent);background:var(--accent-soft)}
+.rank{font-weight:800;color:var(--muted);width:22px;text-align:center}
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{border-top:0;color:var(--muted);font-size:12px;font-weight:600}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.linkbox{display:flex;gap:8px;margin-top:10px}
+.linkbox input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.hero h1{font-size:28px}
+.foot{text-align:center;font-size:12px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,30px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;transition:.25s;pointer-events:none;max-width:calc(100% - 32px);z-index:9}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:560px){main{padding:12px}.card{padding:14px}h1{font-size:21px}.linkbox{flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="top"><a href="#" class="brand"><i></i>Trip Picker</a><span id="status" class="pill" hidden></span></header>
+<main id="app"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+// ==CORE==
+const CONFIG = { owner: 'kokigit', repo: 'trip-plan', branch: 'data', dir: 'trips', pollMs: 15000 };
+if (typeof location !== 'undefined' && location.hostname.endsWith('.github.io')) {
+  CONFIG.owner = location.hostname.split('.')[0];
+  const seg = location.pathname.split('/').filter(Boolean)[0];
+  CONFIG.repo = seg && !seg.includes('.') ? seg : location.hostname;
+}
+
+const te = new TextEncoder(), td = new TextDecoder();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand = n => crypto.getRandomValues(new Uint8Array(n));
+const bytesToBin = b => { let s = ''; for (const x of new Uint8Array(b)) s += String.fromCharCode(x); return s; };
+const binToBytes = s => Uint8Array.from(s, c => c.charCodeAt(0));
+const b64u = {
+  enc: b => btoa(bytesToBin(b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+  dec: s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return binToBytes(atob(s)); },
+};
+const b64 = {
+  enc: str => btoa(bytesToBin(te.encode(str))),
+  dec: s => td.decode(binToBytes(atob(s.replace(/\s/g, '')))),
+};
+
+// Dates are ISO "YYYY-MM-DD" strings, handled in UTC so time zones never shift a day.
+const D = {
+  parse: iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); },
+  fmt: dt => dt.toISOString().slice(0, 10),
+  add: (iso, n) => { const d = D.parse(iso); d.setUTCDate(d.getUTCDate() + n); return D.fmt(d); },
+  addMonths: (iso, n) => { const d = D.parse(iso); const day = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n);
+    const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); d.setUTCDate(Math.min(day, last)); return D.fmt(d); },
+  dow: iso => D.parse(iso).getUTCDay(),
+  diff: (a, b) => Math.round((D.parse(b) - D.parse(a)) / 864e5),
+  today: () => { const n = new Date(); return D.fmt(new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()))); },
+  label: (iso, o = { weekday: 'short', day: 'numeric', month: 'short' }) => D.parse(iso).toLocaleDateString(undefined, { ...o, timeZone: 'UTC' }),
+  weekends: (from, to) => { const out = []; for (let d = from; d <= to; d = D.add(d, 1)) { const w = D.dow(d); if (w === 0 || w === 6) out.push(d); } return out; },
+};
+const blockDays = (start, n) => Array.from({ length: n }, (_, i) => D.add(start, i));
+const blockLabel = days => days.length === 1 ? D.label(days[0]) : `${D.label(days[0])} – ${D.label(days[days.length - 1])}`;
+
+// Ranks every run of `tripDays` consecutive candidate days by how many people can make all of it.
+function bestBlocks(trip) {
+  const cand = new Set(trip.candidates);
+  const ps = Object.values(trip.participants || {});
+  const out = [];
+  for (const start of [...trip.candidates].sort()) {
+    const days = blockDays(start, trip.tripDays);
+    if (!days.every(d => cand.has(d))) continue;
+    const all = ps.filter(p => days.every(d => p.dates.includes(d)));
+    const total = days.reduce((s, d) => s + ps.filter(p => p.dates.includes(d)).length, 0);
+    out.push({ start, days, all, total });
+  }
+  return out.sort((a, b) => b.all.length - a.all.length || b.total - a.total || a.start.localeCompare(b.start));
+}
+
+const Crypt = {
+  genKey: () => b64u.enc(rand(32)),
+  importKey: async k => { const raw = b64u.dec(k); if (raw.length !== 32) throw new Error('bad key'); return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']); },
+  encrypt: async (key, id, obj) => {
+    const iv = rand(12);
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: te.encode('v1|' + id) }, key, te.encode(JSON.stringify(obj)));
+    return { v: 1, iv: b64u.enc(iv), ct: b64u.enc(ct) };
+  },
+  decrypt: async (key, id, file) => {
+    if (!file || file.v !== 1) throw new Error('Unsupported trip file');
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64u.dec(file.iv), additionalData: te.encode('v1|' + id) }, key, b64u.dec(file.ct));
+    return JSON.parse(td.decode(pt));
+  },
+  pinHash: async (pin, salt) => {
+    const base = await crypto.subtle.importKey('raw', te.encode(pin), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: te.encode(salt), iterations: 100000 }, base, 256);
+    return b64u.enc(bits);
+  },
+};
+
+const GH = {
+  base: () => `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}`,
+  async req(method, url, token, body) {
+    const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (body) headers['Content-Type'] = 'application/json';
+    let r;
+    try { r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }); }
+    catch { const e = new Error('Network error, are you offline?'); e.status = 0; throw e; }
+    if (!r.ok) {
+      let msg = r.statusText; try { msg = (await r.json()).message || msg; } catch {}
+      if (r.status === 403 && r.headers.get('x-ratelimit-remaining') === '0') msg = 'GitHub rate limit reached, try again shortly';
+      const e = new Error(`GitHub ${r.status}: ${msg}`); e.status = r.status; throw e;
+    }
+    return r.status === 204 ? null : r.json();
+  },
+  async get(path, token) {
+    const j = await this.req('GET', `${this.base()}/contents/${path}?ref=${CONFIG.branch}`, token);
+    return { sha: j.sha, data: JSON.parse(b64.dec(j.content)) };
+  },
+  put(path, token, data, sha, message) {
+    return this.req('PUT', `${this.base()}/contents/${path}`, token, { message, content: b64.enc(JSON.stringify(data)), branch: CONFIG.branch, ...(sha ? { sha } : {}) });
+  },
+  del(path, token, sha, message) {
+    return this.req('DELETE', `${this.base()}/contents/${path}`, token, { message, sha, branch: CONFIG.branch });
+  },
+  repo(token) { return this.req('GET', this.base(), token); },
+  // Creates the orphan data branch (with trips/.gitkeep) if it does not exist yet.
+  async ensureBranch(token) {
+    try { await this.req('GET', `${this.base()}/branches/${CONFIG.branch}`, token); return false; }
+    catch (e) { if (e.status !== 404) throw e; }
+    const tree = await this.req('POST', `${this.base()}/git/trees`, token, { tree: [{ path: `${CONFIG.dir}/.gitkeep`, mode: '100644', type: 'blob', content: '' }] });
+    const commit = await this.req('POST', `${this.base()}/git/commits`, token, { message: 'init data branch', tree: tree.sha, parents: [] });
+    await this.req('POST', `${this.base()}/git/refs`, token, { ref: `refs/heads/${CONFIG.branch}`, sha: commit.sha });
+    return true;
+  },
+};
+
+class TripSession {
+  constructor(id, key) { this.id = id; this.key = key; this.trip = null; this.sha = null; }
+  get path() { return `${CONFIG.dir}/${this.id}.json`; }
+  async load(token) {
+    const { sha, data } = await GH.get(this.path, token);
+    this.trip = await Crypt.decrypt(this.key, this.id, data);
+    this.sha = sha;
+    return this.trip;
+  }
+  async create(token, trip) {
+    const file = await Crypt.encrypt(this.key, this.id, trip);
+    const res = await GH.put(this.path, token, file, null, `trip ${this.id}: create`);
+    this.trip = trip; this.sha = res.content.sha;
+  }
+  // Applies `mutate` on top of the latest remote state; on a sha conflict it re-reads and re-applies.
+  async save(token, mutate, label = 'update', onRetry) {
+    for (let attempt = 0; ; attempt++) {
+      const draft = structuredClone(this.trip);
+      mutate(draft);
+      const file = await Crypt.encrypt(this.key, this.id, draft);
+      try {
+        const res = await GH.put(this.path, token, file, this.sha, `trip ${this.id}: ${label}`);
+        this.trip = draft; this.sha = res.content.sha;
+        return;
+      } catch (e) {
+        if ((e.status === 409 || e.status === 422) && attempt < 5) {
+          onRetry && onRetry(attempt);
+          await sleep(250 + Math.random() * 600 * (attempt + 1));
+          await this.load(token);
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+}
+// ==/CORE==
+
+const app = document.getElementById('app');
+const $ = (s, r = document) => r.querySelector(s);
+const LS = {
+  get(k, d = null) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+const adminToken = () => LS.get('tp_admin_token');
+const tripLink = (id, k) => `${location.origin}${location.pathname}#t=${id}&k=${k}`;
+function rememberTrip(id, k, title) {
+  const list = LS.get('tp_trips', []).filter(t => t.id !== id);
+  list.unshift({ id, k, title, at: Date.now() });
+  LS.set('tp_trips', list.slice(0, 30));
+}
+const forgetTrip = id => LS.set('tp_trips', LS.get('tp_trips', []).filter(t => t.id !== id));
+
+function setStatus(kind, text) {
+  const el = $('#status');
+  if (!kind) { el.hidden = true; return; }
+  el.hidden = false; el.className = 'pill ' + kind; el.textContent = text;
+}
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 4500);
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast('Link copied'); }
+  catch { prompt('Copy this link:', text); }
+}
+function fail(msg) {
+  setStatus('err', 'Error');
+  app.innerHTML = `<section class="card"><h2>Can't open this trip</h2><p>${esc(msg)}</p><a class="btn" href="#">Home</a></section>`;
+}
+
+function calendar(range, cell) {
+  const months = [];
+  for (let m = range.from.slice(0, 8) + '01'; m <= range.to; m = D.addMonths(m, 1)) months.push(m);
+  return months.map(m => {
+    const first = D.parse(m), days = D.diff(m, D.addMonths(m, 1)), lead = (first.getUTCDay() + 6) % 7;
+    let cells = '<div class="c out"></div>'.repeat(lead);
+    for (let i = 1; i <= days; i++) {
+      const iso = m.slice(0, 8) + String(i).padStart(2, '0');
+      cells += cell(iso, iso >= range.from && iso <= range.to, i);
+    }
+    return `<div class="month"><h3>${D.label(m, { month: 'long', year: 'numeric' })}</h3><div class="grid">${
+      ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(x => `<div class="dow">${x}</div>`).join('')}${cells}</div></div>`;
+  }).join('');
+}
+
+// ---------- router ----------
+let S = {};
+function route() {
+  if (S.leave) S.leave();
+  S = {};
+  setStatus();
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (location.hash === '#admin') return viewAdmin();
+  if (h.get('t') && h.get('k')) return viewTrip(h.get('t'), h.get('k'));
+  viewHome();
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+// ---------- home ----------
+function viewHome() {
+  const trips = LS.get('tp_trips', []);
+  app.innerHTML = `
+  <section class="card hero">
+    <h1>Pick a weekend, together.</h1>
+    <p class="muted">Everyone marks the weekends they're free, and the best dates rise to the top. Trip data is end-to-end encrypted: only people with the link can read it.</p>
+    <div class="row wrap"><a class="btn primary" href="#admin">Create a trip</a></div>
+  </section>
+  ${trips.length ? `<section class="card"><h2>Your trips</h2><ul class="list">${trips.map(t =>
+    `<li><a href="#t=${esc(t.id)}&k=${esc(t.k)}">${esc(t.title || 'Untitled trip')}</a><button class="link small" data-forget="${esc(t.id)}">remove</button></li>`).join('')}</ul></section>` : ''}
+  <p class="foot muted">Encrypted data lives in <a href="https://github.com/${CONFIG.owner}/${CONFIG.repo}/tree/${CONFIG.branch}/${CONFIG.dir}" target="_blank" rel="noopener">${CONFIG.owner}/${CONFIG.repo}@${CONFIG.branch}</a></p>`;
+  app.querySelectorAll('[data-forget]').forEach(b => b.onclick = () => { forgetTrip(b.dataset.forget); viewHome(); });
+}
+
+// ---------- admin ----------
+function viewAdmin() {
+  const tok = adminToken();
+  const st = S;
+  st.from = D.today(); st.to = D.addMonths(st.from, 3);
+  st.cand = new Set(D.weekends(st.from, st.to));
+  app.innerHTML = `
+  <section class="card">
+    <h2>Organiser token</h2>
+    ${tok ? `<div class="row wrap" style="justify-content:space-between"><span>✓ A token with write access to <b>${CONFIG.owner}/${CONFIG.repo}</b> is saved in this browser.</span><button id="forgetTok" class="btn sm">Forget token</button></div>`
+    : `<p class="muted">Paste a GitHub token that can write to <b>${CONFIG.owner}/${CONFIG.repo}</b> (fine-grained, this repo only, <i>Contents: Read and write</i>). It stays in this browser and is used only to create and manage trips.</p>
+      <form id="tokForm" class="row"><input id="tok" type="password" placeholder="github_pat_…" required autocomplete="off"><button class="btn primary">Save</button></form><p id="tokErr" class="err"></p>`}
+  </section>
+  ${tok ? `
+  <section class="card">
+    <h2>New trip</h2>
+    <form id="newTrip" class="form">
+      <label>Trip name<input name="title" required maxlength="80" placeholder="Ella hiking weekend"></label>
+      <div class="row2">
+        <label>From<input type="date" name="from" value="${st.from}" required></label>
+        <label>To<input type="date" name="to" value="${st.to}" required></label>
+        <label>Trip length<select name="days">${[1, 2, 3, 4].map(n => `<option value="${n}" ${n === 2 ? 'selected' : ''}>${n} day${n > 1 ? 's' : ''}</option>`).join('')}</select></label>
+      </div>
+      <label>Participant token <small>Fine-grained token, this repo only, Contents read &amp; write, short expiry. It is encrypted into the trip so friends can save votes.</small>
+        <input type="password" name="ptok" autocomplete="off" placeholder="github_pat_…"></label>
+      <label class="check"><input type="checkbox" name="same"> Use my organiser token for participants too</label>
+      <div>
+        <h3>Candidate dates</h3>
+        <p class="muted small">Every weekend is selected. Tap a day to add it (for example a long-weekend Friday or Monday) or remove it.</p>
+        <div id="prev" class="cal"></div>
+        <p id="candCount" class="muted small" style="margin-top:10px"></p>
+      </div>
+      <p id="createErr" class="err"></p>
+      <div><button class="btn primary" id="createBtn">Create trip and link</button></div>
+    </form>
+  </section>
+  <section id="result"></section>` : ''}`;
+
+  if (!tok) {
+    $('#tokForm').onsubmit = async e => {
+      e.preventDefault();
+      const t = $('#tok').value.trim(), btn = e.target.querySelector('button');
+      btn.disabled = true; $('#tokErr').textContent = '';
+      try {
+        const repo = await GH.repo(t);
+        if (repo.permissions && !repo.permissions.push) throw new Error('This token cannot write to the repo.');
+        await GH.ensureBranch(t);
+        LS.set('tp_admin_token', t); toast('Token saved'); viewAdmin();
+      } catch (err) { $('#tokErr').textContent = err.message; btn.disabled = false; }
+    };
+    return;
+  }
+  $('#forgetTok').onclick = () => { LS.del('tp_admin_token'); viewAdmin(); };
+
+  const f = $('#newTrip');
+  const drawPrev = () => {
+    $('#prev').innerHTML = calendar({ from: st.from, to: st.to }, (iso, inRange, day) => inRange
+      ? `<button type="button" class="c ${st.cand.has(iso) ? 'cand on' : 'off'}" data-d="${iso}" aria-pressed="${st.cand.has(iso)}">${day}</button>`
+      : `<div class="c out">${day}</div>`);
+    $('#candCount').textContent = `${st.cand.size} candidate day${st.cand.size === 1 ? '' : 's'} selected`;
+  };
+  $('#prev').onclick = e => {
+    const b = e.target.closest('[data-d]'); if (!b) return;
+    st.cand.has(b.dataset.d) ? st.cand.delete(b.dataset.d) : st.cand.add(b.dataset.d);
+    drawPrev();
+  };
+  const onRange = () => {
+    const from = f.elements.from.value, to = f.elements.to.value;
+    if (!from || !to || to < from) return;
+    if (D.diff(from, to) > 366) { $('#createErr').textContent = 'Keep the range within a year.'; return; }
+    $('#createErr').textContent = '';
+    st.from = from; st.to = to; st.cand = new Set(D.weekends(from, to)); drawPrev();
+  };
+  f.elements.from.onchange = onRange; f.elements.to.onchange = onRange;
+  f.elements.same.onchange = () => { f.elements.ptok.disabled = f.elements.same.checked; };
+  drawPrev();
+
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const err = $('#createErr'); err.textContent = '';
+    const ptok = f.elements.same.checked ? adminToken() : f.elements.ptok.value.trim();
+    if (!ptok) { err.textContent = 'Add a participant token, or tick "Use my organiser token".'; return; }
+    if (!st.cand.size) { err.textContent = 'Select at least one candidate date.'; return; }
+    if (f.elements.to.value < f.elements.from.value) { err.textContent = '"To" must be after "From".'; return; }
+    const btn = $('#createBtn'); btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      await GH.ensureBranch(adminToken());
+      const id = b64u.enc(rand(12)), k = Crypt.genKey();
+      const sess = new TripSession(id, await Crypt.importKey(k));
+      const trip = {
+        title: f.elements.title.value.trim(), range: { from: st.from, to: st.to }, tripDays: +f.elements.days.value,
+        candidates: [...st.cand].sort(), token: ptok, locked: null, participants: {}, created: Date.now(),
+      };
+      await sess.create(adminToken(), trip);
+      rememberTrip(id, k, trip.title);
+      const link = tripLink(id, k);
+      $('#result').innerHTML = `<div class="card"><h2>Trip created 🎉</h2>
+        <p>Share this link with your group. <b>The key is in the link itself.</b> Anyone with it can view and vote, and it can't be recovered if you lose it.</p>
+        <div class="linkbox"><input readonly value="${esc(link)}"><button class="btn primary" id="cp">Copy</button><a class="btn" href="${esc('#t=' + id + '&k=' + k)}">Open</a></div></div>`;
+      $('#cp').onclick = () => copy(link);
+      $('#result').scrollIntoView({ behavior: 'smooth' });
+      f.reset(); f.elements.ptok.disabled = false; onRange();
+    } catch (x) { err.textContent = x.message; }
+    btn.disabled = false; btn.textContent = 'Create trip and link';
+  };
+}
+
+// ---------- trip ----------
+async function viewTrip(id, k) {
+  const st = S;
+  app.innerHTML = '<section class="card"><p class="muted">Decrypting trip…</p></section>';
+  setStatus('saving', 'Loading…');
+  let key;
+  try { key = await Crypt.importKey(k); } catch { return fail('This link is incomplete: the key is invalid.'); }
+  const sess = new TripSession(id, key);
+  try { await sess.load(adminToken()); }
+  catch (e) {
+    if (S !== st) return;
+    if (e.status === 404) return fail('Trip not found. It may have been deleted.');
+    if (e.name === 'OperationError') return fail('This trip could not be decrypted. The link key is wrong or incomplete.');
+    return fail(e.message);
+  }
+  if (S !== st) return;
+  const T = () => sess.trip;
+  rememberTrip(id, k, T().title);
+
+  st.me = LS.get('tp_me_' + id);
+  if (st.me && T().participants[st.me.key] && T().participants[st.me.key].pinHash !== st.me.pinHash) { st.me = null; LS.del('tp_me_' + id); }
+  const myRemote = () => new Set(st.me ? T().participants[st.me.key]?.dates || [] : []);
+  st.my = myRemote();
+  st.rev = 0; st.mode = 'vote'; st.focus = null;
+
+  const rtok = () => (!st.tokenBad && T().token) || adminToken() || null;
+  const wtok = () => (!st.tokenBad && T().token) || adminToken() || null;
+
+  async function loadSafe() {
+    try { await sess.load(rtok()); }
+    catch (e) {
+      if (e.status === 401 && !st.tokenBad) { st.tokenBad = true; await sess.load(adminToken() || null); }
+      else throw e;
+    }
+  }
+  async function refresh() {
+    if (document.hidden || st.saving || S !== st) return;
+    const old = sess.sha;
+    try {
+      await loadSafe();
+      if (S !== st) return;
+      setStatus(st.dirty ? 'saving' : 'ok', st.dirty ? 'Unsaved…' : 'Synced');
+      if (sess.sha !== old) { if (!st.dirty) st.my = myRemote(); draw(); }
+    } catch (e) { setStatus('err', e.status === 0 ? 'Offline' : 'Sync error'); }
+  }
+
+  async function flush() {
+    if (!st.dirty) return;
+    if (st.saving) { st.again = true; return; }
+    st.saving = true;
+    const rev = st.rev, dates = [...st.my].sort(), me = st.me;
+    setStatus('saving', 'Saving…');
+    try {
+      const tok = wtok();
+      if (!tok) throw Object.assign(new Error('No write token. Ask the organiser to replace the participant token.'), { status: 401 });
+      await sess.save(tok, t => {
+        if (t.locked) throw new Error('Voting is closed for this trip.');
+        const c = t.participants[me.key];
+        if (c && c.pinHash !== me.pinHash) throw new Error('Your name was claimed by someone else.');
+        t.participants[me.key] = { name: me.name, pinHash: me.pinHash, dates, updatedAt: Date.now() };
+      }, 'vote', () => setStatus('saving', 'Merging…'));
+      if (st.rev === rev) { st.dirty = false; setStatus('ok', 'Synced'); }
+    } catch (e) {
+      setStatus('err', 'Not saved');
+      toast(e.message);
+      if (e.status === 401) st.tokenBad = true;
+      if (!e.status) { st.dirty = false; st.my = myRemote(); }
+    } finally {
+      st.saving = false;
+      if (st.again) { st.again = false; flush(); }
+      else if (S === st) draw();
+    }
+  }
+  const scheduleSave = () => {
+    st.rev++; st.dirty = true; setStatus('saving', 'Unsaved…');
+    clearTimeout(st.saveTimer); st.saveTimer = setTimeout(flush, 1200);
+  };
+
+  async function adminSave(label, mutate) {
+    setStatus('saving', 'Saving…');
+    try { await sess.save(adminToken(), mutate, label); setStatus('ok', 'Synced'); return true; }
+    catch (e) { setStatus('err', 'Error'); toast(e.message); return false; }
+    finally { if (S === st) draw(); }
+  }
+
+  // Participants as displayed: remote state with my unsaved picks layered on top.
+  const effective = () => {
+    const p = structuredClone(T().participants || {});
+    if (st.me && (p[st.me.key] || st.dirty)) p[st.me.key] = { ...(p[st.me.key] || {}), name: st.me.name, dates: [...st.my].sort() };
+    return p;
+  };
+
+  function draw() {
+    const t = T(), isAdmin = !!adminToken();
+    const joinVals = [...app.querySelectorAll('#join input')].map(i => i.value);
+    const parts = effective(), ps = Object.values(parts).sort((a, b) => a.name.localeCompare(b.name));
+    const candSet = new Set(t.candidates);
+    const counts = {};
+    for (const p of ps) for (const d of p.dates) if (candSet.has(d)) (counts[d] ||= []).push(p.name);
+    const max = Math.max(1, ps.length);
+    const lockedDays = t.locked ? blockDays(t.locked, t.tripDays) : [];
+    const editing = st.mode === 'edit';
+    const canVote = st.me && !t.locked && !editing;
+    const blocks = bestBlocks({ ...t, participants: parts });
+    const fmtRange = `${D.label(t.range.from, { day: 'numeric', month: 'short', year: 'numeric' })} → ${D.label(t.range.to, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+    const cell = (iso, inRange, day) => {
+      if (!inRange) return `<div class="c out">${day}</div>`;
+      if (editing) return `<button type="button" class="c ${st.candEdit.has(iso) ? 'cand on' : 'off'}" data-d="${iso}">${day}</button>`;
+      if (!candSet.has(iso)) return `<div class="c off">${day}</div>`;
+      const names = counts[iso] || [];
+      const cls = ['c', 'cand', st.my.has(iso) && st.me ? 'mine' : '', lockedDays.includes(iso) ? 'final' : '', st.focus === iso ? 'focus' : ''].join(' ');
+      return `<button type="button" class="${cls}" style="--h:${(names.length / max).toFixed(2)}" data-d="${iso}" aria-pressed="${st.my.has(iso)}" title="${esc(D.label(iso) + ': ' + (names.join(', ') || 'no one yet'))}">${day}${names.length ? `<span class="ct">${names.length}</span>` : ''}</button>`;
+    };
+
+    const focusBox = () => {
+      if (!st.focus || editing) return '';
+      const yes = counts[st.focus] || [], no = ps.map(p => p.name).filter(n => !yes.includes(n));
+      return `<div class="focusbox"><b>${D.label(st.focus, { weekday: 'long', day: 'numeric', month: 'long' })}</b>, ${yes.length} of ${ps.length} free
+        <div class="chips">${yes.map(n => `<span class="chip">${esc(n)}</span>`).join('')}${no.map(n => `<span class="chip no">${esc(n)}</span>`).join('')}</div></div>`;
+    };
+
+    const best = !ps.length ? '<p class="muted">No votes yet. Results appear once people mark their dates.</p>'
+      : !blocks.length ? `<p class="muted">No run of ${t.tripDays} consecutive candidate days exists. ${isAdmin ? 'Edit the candidate dates to add some.' : ''}</p>`
+      : `<ol class="best">${blocks.slice(0, 5).map((b, i) => `<li class="${i === 0 && b.all.length ? 'top' : ''}">
+          <span class="rank">${i + 1}</span>
+          <div><b>${blockLabel(b.days)}</b> <span class="muted small">· ${b.all.length}/${ps.length} free${t.tripDays > 1 ? ' for all days' : ''}</span>
+            <div class="bar"><i style="width:${Math.round(b.all.length / max * 100)}%"></i></div>
+            ${b.all.length ? `<div class="chips">${b.all.map(p => `<span class="chip">${esc(p.name)}</span>`).join('')}</div>` : ''}</div>
+          ${isAdmin && !t.locked ? `<button class="btn sm" data-lock="${b.start}">Pick</button>` : t.locked === b.start ? '<span class="chip">chosen</span>' : '<span></span>'}
+        </li>`).join('')}</ol>`;
+
+    const people = !ps.length ? '<p class="muted">No one has joined yet. Share the link!</p>'
+      : `<table><thead><tr><th>Name</th><th>Free on</th>${isAdmin ? '<th></th>' : ''}</tr></thead><tbody>${ps.map(p => {
+          const ds = p.dates.filter(d => candSet.has(d)).sort();
+          const key = Object.keys(parts).find(k2 => parts[k2] === p);
+          return `<tr><td><b>${esc(p.name)}</b>${st.me && key === st.me.key ? ' <span class="muted small">(you)</span>' : ''}</td>
+            <td>${ds.length ? `<span class="small">${ds.map(d => D.label(d, { day: 'numeric', month: 'short' })).join(', ')}</span>` : '<span class="muted small">nothing yet</span>'}</td>
+            ${isAdmin ? `<td><button class="link small" data-rm="${esc(key)}">remove</button></td>` : ''}</tr>`;
+        }).join('')}</tbody></table>`;
+
+    app.innerHTML = `
+    <section class="card head">
+      <div><h1>${esc(t.title)}</h1><p class="muted small" style="margin:0">${fmtRange} · ${t.tripDays}-day trip · ${ps.length} ${ps.length === 1 ? 'person' : 'people'}</p></div>
+      <button class="btn" id="copyLink">Copy invite link</button>
+    </section>
+    ${t.locked ? `<div class="banner final">🎉 It's decided: <b>${blockLabel(lockedDays)}</b></div>` : ''}
+    ${st.tokenBad ? '<div class="banner warn">The participant token has expired or been revoked. Votes can\'t be saved until the organiser replaces it.</div>' : ''}
+    ${editing ? `<div class="banner">Editing candidate dates. Tap any day in the range to add or remove it.
+        <button class="btn primary sm" id="saveCand">Save dates</button><button class="btn sm" id="cancelCand">Cancel</button></div>` : ''}
+    ${st.me ? `<section class="card row wrap" style="justify-content:space-between">
+        <span>Voting as <b>${esc(st.me.name)}</b> · <span class="muted">${[...st.my].filter(d => candSet.has(d)).length} day(s) marked</span>${t.locked ? ' · <span class="muted">voting closed</span>' : ''}</span>
+        <button class="link small" id="switch">Not you?</button></section>`
+      : t.locked ? '' : `<section class="card"><h2>Join this trip</h2>
+        <p class="muted small">Enter your name and a PIN (4–12 digits). Use the same name and PIN to change your dates later, on any device.</p>
+        <form id="join" class="row wrap"><input name="name" placeholder="Your name" required maxlength="40" autocomplete="nickname" style="flex:2 1 160px">
+          <input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,12}" placeholder="PIN" required autocomplete="off" style="flex:1 1 90px">
+          <button class="btn primary">Join</button></form><p id="joinErr" class="err"></p></section>`}
+    <section class="card">
+      <h2>${editing ? 'Candidate dates' : canVote ? 'Tap the days you\'re free' : 'Availability'}</h2>
+      ${editing ? '' : `<div class="legend"><span><b></b>candidate</span><span><b class="hot"></b>more people free</span>${st.me ? '<span><b class="me"></b>you\'re free</span>' : ''}${t.locked ? '<span><b class="fin"></b>chosen</span>' : ''}</div>`}
+      <div class="cal" id="cal">${calendar(t.range, cell)}</div>
+      ${focusBox()}
+    </section>
+    <section class="card"><h2>Best ${t.tripDays > 1 ? `${t.tripDays}-day blocks` : 'dates'}</h2>${best}</section>
+    <section class="card"><h2>Who's coming</h2>${people}</section>
+    ${isAdmin ? `<section class="card"><h2>Organiser</h2><div class="row wrap">
+        ${t.locked ? '<button id="unlock" class="btn">Reopen voting</button>' : ''}
+        ${editing ? '' : '<button id="editCand" class="btn">Edit candidate dates</button>'}
+        <button id="rotate" class="btn">Replace participant token</button>
+        <button id="delTrip" class="btn danger">Delete trip</button></div>
+        <p class="muted small" style="margin-top:10px">You see these tools because an organiser token is saved in this browser.</p></section>` : ''}`;
+
+    app.querySelectorAll('#join input').forEach((inp, i) => { if (joinVals[i]) inp.value = joinVals[i]; });
+    bind();
+  }
+
+  function bind() {
+    $('#copyLink').onclick = () => copy(tripLink(id, k));
+    $('#cal').onclick = e => {
+      const b = e.target.closest('[data-d]'); if (!b) return;
+      const d = b.dataset.d;
+      if (st.mode === 'edit') { st.candEdit.has(d) ? st.candEdit.delete(d) : st.candEdit.add(d); return draw(); }
+      st.focus = d;
+      if (st.me && !T().locked) { st.my.has(d) ? st.my.delete(d) : st.my.add(d); scheduleSave(); }
+      else if (!st.me && !T().locked) { const n = $('#join input'); n && n.focus(); }
+      draw();
+    };
+    const sw = $('#switch');
+    if (sw) sw.onclick = async () => {
+      if (st.dirty) { clearTimeout(st.saveTimer); await flush(); }
+      LS.del('tp_me_' + id); st.me = null; st.my = new Set(); draw();
+    };
+    const join = $('#join');
+    if (join) join.onsubmit = async e => {
+      e.preventDefault();
+      const errEl = $('#joinErr'), btn = join.querySelector('button');
+      const name = join.elements.namedItem('name').value.trim().replace(/\s+/g, ' '), pin = join.elements.pin.value;
+      if (!name) return;
+      const nkey = name.toLowerCase();
+      btn.disabled = true; errEl.textContent = '';
+      try {
+        const pinHash = await Crypt.pinHash(pin, `${id}|${nkey}`);
+        await loadSafe().catch(() => {});
+        const rec = T().participants[nkey];
+        if (rec && rec.pinHash !== pinHash) throw new Error(`"${rec.name}" is already taken and that PIN doesn't match.`);
+        if (!rec) {
+          const tok = wtok();
+          if (!tok) throw new Error('This trip has no working write token. Ask the organiser to replace it.');
+          await sess.save(tok, t => {
+            const c = t.participants[nkey];
+            if (c && c.pinHash !== pinHash) throw new Error('That name was just taken. Pick another.');
+            if (!c) t.participants[nkey] = { name, pinHash, dates: [], updatedAt: Date.now() };
+          }, 'join');
+        }
+        st.me = { name: (rec || T().participants[nkey]).name, key: nkey, pinHash };
+        LS.set('tp_me_' + id, st.me);
+        st.my = myRemote();
+        setStatus('ok', 'Synced');
+        toast(rec ? `Welcome back, ${st.me.name}` : `You're in, ${st.me.name}! Tap the days you're free.`);
+        draw();
+      } catch (x) { errEl.textContent = x.message; btn.disabled = false; }
+    };
+    app.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => {
+      if (confirm(`Lock the trip to ${blockLabel(blockDays(b.dataset.lock, T().tripDays))}? Voting will close.`))
+        adminSave('lock', t => { t.locked = b.dataset.lock; });
+    });
+    app.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+      const p = T().participants[b.dataset.rm];
+      if (p && confirm(`Remove ${p.name} and their votes?`)) adminSave('remove', t => { delete t.participants[b.dataset.rm]; });
+    });
+    const on = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
+    on('#unlock', () => adminSave('reopen', t => { t.locked = null; }));
+    on('#editCand', () => { st.mode = 'edit'; st.candEdit = new Set(T().candidates); st.focus = null; draw(); });
+    on('#cancelCand', () => { st.mode = 'vote'; draw(); });
+    on('#saveCand', async () => {
+      if (!st.candEdit.size) return toast('Keep at least one candidate date.');
+      const c = [...st.candEdit].sort();
+      st.mode = 'vote';
+      await adminSave('dates', t => { t.candidates = c; });
+    });
+    on('#rotate', async () => {
+      const nt = prompt('Paste the new participant token (fine-grained, this repo only, Contents read & write):');
+      if (!nt || !nt.trim()) return;
+      if (await adminSave('token', t => { t.token = nt.trim(); })) { st.tokenBad = false; toast('Participant token replaced'); draw(); }
+    });
+    on('#delTrip', async () => {
+      if (!confirm('Delete this trip for everyone? This cannot be undone from the app.')) return;
+      try {
+        await loadSafe();
+        await GH.del(sess.path, adminToken(), sess.sha, `trip ${id}: delete`);
+        forgetTrip(id); LS.del('tp_me_' + id); st.dirty = false;
+        toast('Trip deleted'); location.hash = '';
+      } catch (e) { toast(e.message); }
+    });
+  }
+
+  draw();
+  setStatus('ok', 'Synced');
+  st.poll = setInterval(refresh, CONFIG.pollMs);
+  st.onVis = () => { if (!document.hidden) refresh(); else if (st.dirty) { clearTimeout(st.saveTimer); flush(); } };
+  document.addEventListener('visibilitychange', st.onVis);
+  st.leave = () => {
+    clearInterval(st.poll);
+    document.removeEventListener('visibilitychange', st.onVis);
+    if (st.dirty) { clearTimeout(st.saveTimer); flush(); }
+  };
+}
+
+route();
+</script>
+</body>
+</html>
