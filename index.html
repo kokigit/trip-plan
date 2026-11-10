@@ -473,7 +473,8 @@ async function viewTrip(id, k) {
   rememberTrip(id, k, T().title);
 
   st.me = LS.get('tp_me_' + id);
-  if (st.me && T().participants[st.me.key] && T().participants[st.me.key].pinHash !== st.me.pinHash) { st.me = null; LS.del('tp_me_' + id); }
+  // Forget the saved identity if that record was removed/renamed or its PIN changed.
+  if (st.me && T().participants[st.me.key]?.pinHash !== st.me.pinHash) { st.me = null; LS.del('tp_me_' + id); }
   const myRemote = () => new Set(st.me ? T().participants[st.me.key]?.dates || [] : []);
   st.my = myRemote();
   st.rev = 0; st.mode = 'vote'; st.focus = null;
@@ -495,7 +496,14 @@ async function viewTrip(id, k) {
       await loadSafe();
       if (S !== st) return;
       setStatus(st.dirty ? 'saving' : 'ok', st.dirty ? 'Unsaved…' : 'Synced');
-      if (sess.sha !== old) { if (!st.dirty) st.my = myRemote(); draw(); }
+      if (sess.sha !== old) {
+        if (st.me && T().participants[st.me.key]?.pinHash !== st.me.pinHash) {
+          st.me = null; st.dirty = false; clearTimeout(st.saveTimer); LS.del('tp_me_' + id);
+          toast('Your name was changed by the organiser. Please join again.');
+        }
+        if (!st.dirty) st.my = myRemote();
+        draw();
+      }
     } catch (e) { setStatus('err', e.status === 0 ? 'Offline' : 'Sync error'); }
   }
 
@@ -511,7 +519,7 @@ async function viewTrip(id, k) {
       await sess.save(tok, t => {
         if (t.locked) throw new Error('Voting is closed for this trip.');
         const c = t.participants[me.key];
-        if (c && c.pinHash !== me.pinHash) throw new Error('Your name was claimed by someone else.');
+        if (!c || c.pinHash !== me.pinHash) throw new Error('Your entry was renamed or removed by the organiser. Please join again.');
         t.participants[me.key] = { name: me.name, pinHash: me.pinHash, dates, updatedAt: Date.now() };
       }, 'vote', () => setStatus('saving', 'Merging…'));
       if (st.rev === rev) { st.dirty = false; setStatus('ok', 'Synced'); }
@@ -519,7 +527,10 @@ async function viewTrip(id, k) {
       setStatus('err', 'Not saved');
       toast(e.message);
       if (e.status === 401) st.tokenBad = true;
-      if (!e.status) { st.dirty = false; st.my = myRemote(); }
+      if (!e.status) {
+        if (st.me && T().participants[st.me.key]?.pinHash !== st.me.pinHash) { st.me = null; LS.del('tp_me_' + id); }
+        st.dirty = false; st.my = myRemote();
+      }
     } finally {
       st.saving = false;
       if (st.again) { st.again = false; flush(); }
@@ -591,7 +602,7 @@ async function viewTrip(id, k) {
           const key = Object.keys(parts).find(k2 => parts[k2] === p);
           return `<tr><td><b>${esc(p.name)}</b>${st.me && key === st.me.key ? ' <span class="muted small">(you)</span>' : ''}</td>
             <td>${ds.length ? `<span class="small">${ds.map(d => D.label(d, { day: 'numeric', month: 'short' })).join(', ')}</span>` : '<span class="muted small">nothing yet</span>'}</td>
-            ${isAdmin ? `<td><button class="link small" data-rm="${esc(key)}">remove</button></td>` : ''}</tr>`;
+            ${isAdmin ? `<td style="white-space:nowrap"><button class="link small" data-rn="${esc(key)}">rename</button> · <button class="link small" data-rm="${esc(key)}">remove</button></td>` : ''}</tr>`;
         }).join('')}</tbody></table>`;
 
     app.innerHTML = `
@@ -658,14 +669,16 @@ async function viewTrip(id, k) {
         const pinHash = await Crypt.pinHash(pin, `${id}|${nkey}`);
         await loadSafe().catch(() => {});
         const rec = T().participants[nkey];
-        if (rec && rec.pinHash !== pinHash) throw new Error(`"${rec.name}" is already taken and that PIN doesn't match.`);
-        if (!rec) {
+        if (rec && rec.pinHash && rec.pinHash !== pinHash) throw new Error(`"${rec.name}" is already taken and that PIN doesn't match.`);
+        // No record yet, or a record whose PIN the organiser reset: claim it with this PIN.
+        if (!rec || !rec.pinHash) {
           const tok = wtok();
           if (!tok) throw new Error('This trip has no working write token. Ask the organiser to replace it.');
           await sess.save(tok, t => {
             const c = t.participants[nkey];
-            if (c && c.pinHash !== pinHash) throw new Error('That name was just taken. Pick another.');
+            if (c && c.pinHash && c.pinHash !== pinHash) throw new Error('That name was just taken. Pick another.');
             if (!c) t.participants[nkey] = { name, pinHash, dates: [], updatedAt: Date.now() };
+            else if (!c.pinHash) c.pinHash = pinHash;
           }, 'join');
         }
         st.me = { name: (rec || T().participants[nkey]).name, key: nkey, pinHash };
@@ -683,6 +696,20 @@ async function viewTrip(id, k) {
     app.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
       const p = T().participants[b.dataset.rm];
       if (p && confirm(`Remove ${p.name} and their votes?`)) adminSave('remove', t => { delete t.participants[b.dataset.rm]; });
+    });
+    app.querySelectorAll('[data-rn]').forEach(b => b.onclick = () => {
+      const old = b.dataset.rn, p = T().participants[old]; if (!p) return;
+      const name = (prompt(`Rename ${p.name} to:`, p.name) || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+      if (!name || name === p.name) return;
+      const nk = name.toLowerCase();
+      if (nk !== old && T().participants[nk]) return toast(`"${name}" is already taken.`);
+      // The PIN hash is salted with the name, so a rename resets it; the next person joining as `name` sets a new PIN.
+      adminSave('rename', t => {
+        const c = t.participants[old]; if (!c) throw new Error('That person no longer exists.');
+        if (nk !== old && t.participants[nk]) throw new Error(`"${name}" is already taken.`);
+        delete t.participants[old];
+        t.participants[nk] = { ...c, name, pinHash: nk === old ? c.pinHash : null, updatedAt: Date.now() };
+      });
     });
     const on = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
     on('#unlock', () => adminSave('reopen', t => { t.locked = null; }));
